@@ -27,6 +27,7 @@ A specialized logging system for antenna data that stores information in MySQL w
 
 ### Common Dependencies
 
+In a virtual environement : 
 ```bash
 pip install -r requirements.txt
 ```
@@ -72,7 +73,7 @@ MYSQL_CONFIG = {
     "host": "localhost",
     "database": "data_logs",
     "user": "userexample",
-    "password": "pswrdexample",
+    "password": "pswdexample",
     "port": 3306,
 }
 ```
