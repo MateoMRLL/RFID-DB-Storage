@@ -28,19 +28,7 @@ A specialized logging system for antenna data that stores information in MySQL w
 ### Common Dependencies
 
 ```bash
-pip install pyserial
-```
-
-### Debug Logger Additional Requirements
-
-```bash
-# No additional requirements - uses built-in sqlite3
-```
-
-### Antenna Logger Additional Requirements
-
-```bash
-pip install mysql-connector-python
+pip install -r requirements.txt
 ```
 
 ## Database Setup
