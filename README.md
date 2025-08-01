@@ -1,90 +1,228 @@
-# Serial Debug Logger
+# Serial Logger Scripts
 
-A comprehensive Python tool for debugging serial communication with detailed logging and real-time monitoring.
+Two Python scripts for logging serial data with different database backends and features.
 
-## Features
+## Scripts Overview
 
-- **Real-time monitoring** - Continuously listens for incoming data
-- **Multiple read methods** - Handles line-based and byte-based communication
-- **SQLite logging** - Stores all data with timestamps for analysis
-- **Binary data support** - Handles both text and binary data
-- **Interactive commands** - Send commands and see responses
-- **Detailed statistics** - Track bytes received, message counts, and timing
+### 1. Debug Serial Logger (`script.py`)
 
-## Quick Start
+A comprehensive debugging tool for serial communication that logs to SQLite database.
 
-I recommend to launch the program on Linux system because on Windows driver is required.
+### 2. Antenna Serial Logger (`script2.py`)
+
+A specialized logging system for antenna data that stores information in MySQL with antenna identification.
+
+## Features Comparison
+
+| Feature              | Debug Logger         | Antenna Logger             |
+| -------------------- | -------------------- | -------------------------- |
+| Database             | SQLite               | MySQL                      |
+| Antenna Support      | ❌                   | ✅ (1 or 2)                |
+| Interactive Commands | Full command sending | Simplified antenna control |
+| Debug Output         | Verbose debugging    | Antenna-focused logging    |
+| Binary Data Support  | ✅                   | ✅                         |
+| Auto-reconnect       | ❌                   | ✅ (MySQL)                 |
+
+## Requirements
+
+### Common Dependencies
 
 ```bash
-# Create .venv (on Windows)
-& "c:/Program Files/Python313/python.exe" -m venv .venv
-# Create .venv (on Linux)
-pyhton -m venv .venv
+pip install pyserial
+```
 
-# Launch it (on Windows)
-.venv\Scripts\activate
+### Debug Logger Additional Requirements
 
-# Launch it (on Linux)
-source .venv/bin/activate
+```bash
+# No additional requirements - uses built-in sqlite3
+```
 
+### Antenna Logger Additional Requirements
 
-# Install dependencies
-pip install -r requirements.txt
+```bash
+pip install mysql-connector-python
+```
 
-# Run the logger
-python script.py
+## Database Setup
+
+### Debug Logger (SQLite)
+
+No setup required - database file is created automatically.
+
+### Antenna Logger (MySQL)
+
+1. Install MySQL server
+2. Create database and user:
+
+```sql
+CREATE DATABASE data_logs;
+CREATE USER 'example'@'localhost' IDENTIFIED BY 'pswrdexample';
+GRANT ALL PRIVILEGES ON data_logs.* TO 'userexample'@'localhost';
+FLUSH PRIVILEGES;
 ```
 
 ## Configuration
 
+### Debug Logger
+
 Edit these variables in the script:
 
 ```python
-PORT = "/dev/ttyUSB0"    # Your serial port (Windows: "COM3", etc.)
-BAUDRATE = 9600          # Match your device's baud rate
+PORT = "/dev/ttyUSB0"      # Your serial port
+BAUDRATE = 9600            # Baud rate
+```
+
+### Antenna Logger
+
+Edit these variables in the script:
+
+```python
+PORT = "/dev/ttyUSB0"      # Your serial port
+BAUDRATE = 9600            # Baud rate
+
+MYSQL_CONFIG = {
+    "host": "localhost",
+    "database": "data_logs",
+    "user": "userexample",
+    "password": "pswrdexample",
+    "port": 3306,
+}
 ```
 
 ## Usage
 
-1. **Connect** - Script automatically connects to the specified port
-2. **Monitor** - Listens for incoming data and displays it in real-time
-3. **Send commands** - Type any command and press Enter to send
-4. **View stats** - Type `stats` to see connection statistics
+### Debug Logger
 
-## Interactive Commands
+```bash
+python script.py
+```
 
-- `test` - Test the connection status
-- `stats` - Show reception statistics
-- `quit` - Exit the program
-- Any other text - Send as command to the device
+**Interactive Commands:**
 
-## Output
+- `test` - Test connection
+- `stats` - Show statistics
+- `quit` - Exit
+- Any other text - Send as command to serial device (refers to the component datasheet)
 
-The logger shows:
+**Features:**
 
-- **Timestamp** for each message
-- **Raw data** received from the device
-- **Byte counts** for debugging
-- **Connection status** and statistics
+- Automatic data reception monitoring
+- Verbose debugging output
+- Multiple read methods (readline, single bytes)
+- Raw bytes logging in hex format
+- Real-time statistics
 
-## Database
+### Antenna Logger
 
-All data is automatically logged to `serial_debug.db` with:
+```bash
+python script2.py
+```
 
-- Timestamps
-- Raw data content
-- Data type (text/binary)
-- Byte counts
+**Interactive Commands:**
+
+- `antenna 1` - Set antenna to 1
+- `antenna 2` - Set antenna to 2
+- `start` - Start monitoring with selected antenna
+- `stats` - Show statistics
+- `quit` - Exit
+
+It's not really possible to use the command from the datasheet with this script but with the first one it's possible.
+
+**Features:**
+
+- Antenna-specific data logging
+- MySQL storage with indexing
+- Automatic database reconnection
+- Simplified interface focused on antenna switching
+
+## Database Schema
+
+### Debug Logger (SQLite)
+
+```sql
+CREATE TABLE serial_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data TEXT,
+    data_type TEXT,
+    raw_bytes TEXT,
+    byte_count INTEGER
+);
+```
+
+### Antenna Logger (MySQL)
+
+```sql
+CREATE TABLE serial_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data TEXT,
+    data_type VARCHAR(50),
+    raw_bytes LONGTEXT,
+    byte_count INT,
+    antenna INT,
+    INDEX idx_timestamp (timestamp),
+    INDEX idx_data_type (data_type),
+    INDEX idx_antenna (antenna)
+);
+```
+
+## Data Types Logged
+
+Both scripts log different types of data:
+
+- `auto_received` - Normal text data received automatically
+- `binary_received` - Binary data (stored as hex)
+- `command_sent` - Commands sent to device (Debug Logger only)
+
+## Serial Port Configuration
+
+Both scripts use these serial parameters:
+
+- **Data bits:** 8
+- **Parity:** None
+- **Stop bits:** 1
+- **Timeout:** 0.1 seconds (non-blocking)
+
+## Common Serial Ports
+
+### Linux/macOS
+
+- `/dev/ttyUSB0`, `/dev/ttyUSB1` (USB-to-serial adapters)
+- `/dev/ttyACM0`, `/dev/ttyACM1` (Arduino, CDC devices)
+- `/dev/ttyS0`, `/dev/ttyS1` (Built-in serial ports)
+
+### Windows
+
+- `COM1`, `COM2`, `COM3`, etc.
 
 ## Troubleshooting
 
-- **Permission denied**: Add user to dialout group or run with sudo
-- **Port not found**: Check port name with `ls /dev/tty*`
-- **No data received**: Verify baud rate and device connection
-- **Garbled data**: Check baud rate matches device settings
+### Permission Issues (Linux/macOS)
 
-## Requirements
+```bash
+# Add user to dialout group
+sudo usermod -a -G dialout $USER
+# Log out and back in
 
-- Python 3.6+
-- pyserial library
-- SQLite3 (built-in with Python)
+# Or run with sudo (not recommended)
+sudo python script.py
+```
+
+## File Outputs
+
+### Debug Logger
+
+- **Database:** `serial_debug.db` (SQLite file)
+
+### Antenna Logger
+
+- **Database:** MySQL `data_logs` database
+- **Tables:** `serial_logs` table with antenna column
+
+## Performance Notes
+
+- Both scripts use threading for non-blocking serial monitoring
+- Short sleep intervals (0.01s) for responsive data capture
+- MySQL version includes connection pooling and auto-reconnect
+- SQLite version is simpler but single-threaded for database access
